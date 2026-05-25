@@ -15,6 +15,20 @@ auth.json
 # from here when present and falls back to built-in weights when it isn't.
 .factory
 
+# Python (migration script + offline tests)
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Held-back migration output: flagged recipes routed here by migrate.py must NOT
+# be published. GitHub Actions builds only committed files, so keeping this dir
+# out of git guarantees flagged recipes never deploy or get indexed until a human
+# reviews one and MOVES it into content/recipes/ (which is tracked). No Eleventy
+# config change needed. (The migration report is generated, not source — Phase 4
+# may commit its real run with `git add -f` if an audit trail is wanted.)
+content/_needs_review/
+MIGRATION_REPORT.md
+
 # OS / editor cruft
 .DS_Store
 *.log
