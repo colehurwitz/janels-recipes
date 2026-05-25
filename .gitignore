@@ -15,6 +15,19 @@ auth.json
 # from here when present and falls back to built-in weights when it isn't.
 .factory
 
+# Python (migration script + offline tests)
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# NOTE (Phase 4): the held-back migration output IS committed now — it is a core
+# deliverable, the durable human-review queue. `content/_needs_review/*.md` (the
+# flagged recipes) and `MIGRATION_REPORT.md` (the review log) are tracked so they
+# survive the ephemeral worktree and are visible for review. They are kept OUT of
+# the PUBLISHED site by `.eleventyignore` (Eleventy skips content/_needs_review/),
+# so they are not in `_site`, not deployed, and not indexed by Pagefind — until a
+# human MOVES one into content/recipes/ and clears `review: true`.
+
 # OS / editor cruft
 .DS_Store
 *.log

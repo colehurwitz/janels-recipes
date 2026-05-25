@@ -1,0 +1,3 @@
+# Python dependencies for the one-time recipe migration (migrate.py).
+# Install with:  pip install -r requirements.txt
+markdown-it-py>=3,<4

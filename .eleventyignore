@@ -1,0 +1,11 @@
+# Flagged migration output held back from the PUBLISHED site.
+#
+# migrate.py routes recipes that need human review into content/_needs_review/.
+# These files ARE committed (the durable review queue) but must NOT be built,
+# deployed, or indexed by Pagefind until a human reviews one and MOVES it into
+# content/recipes/ (clearing `review: true`). Listing the directory here tells
+# Eleventy to skip it during the build, so it never appears in _site/.
+#
+# The auto-discovery contract for content/recipes/ is untouched: any .md dropped
+# there still becomes a page with zero config edits.
+content/_needs_review

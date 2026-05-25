@@ -20,6 +20,7 @@ import re
 import secrets
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -27,6 +28,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "_site"
 RECIPES_DIR = ROOT / "content" / "recipes"
 PROFILE_PATH = ROOT / ".factory" / "eval_profile.json"
+MIGRATE_SCRIPT = ROOT / "migrate.py"
+MIGRATION_FIXTURE = ROOT / "tests" / "fixtures" / "eval_sample.md"
 
 # Fallbacks if the profile can't be read.
 DEFAULT_PREFIX = "/janels-recipes/"
@@ -289,22 +292,87 @@ def dim_print_mobile_css() -> dict:
     }
 
 
+def ensure_markdown_it() -> str:
+    """Best-effort install of migrate.py's only dependency (markdown-it-py)."""
+    try:
+        import markdown_it  # noqa: F401
+        return "markdown-it-py present"
+    except ImportError:
+        pass
+    req = ROOT / "requirements.txt"
+    for cmd in (
+        [sys.executable, "-m", "pip", "install", "-r", str(req)],
+        ["uv", "pip", "install", "-r", str(req)],
+        [sys.executable, "-m", "pip", "install", "markdown-it-py>=3,<4"],
+    ):
+        try:
+            res = run(cmd, timeout=300)
+            if res.returncode == 0:
+                return f"installed via {' '.join(cmd[:3])}"
+        except Exception:
+            continue
+    return "markdown-it-py NOT installed (install failed)"
+
+
 def dim_migration() -> dict:
-    """Stubbed until Phase 3 lands migrate.py. Never fails the run."""
-    script = ROOT / "migrate.py"
-    if not script.exists():
+    """Run migrate.py on a committed sample fixture (Phase 3+) and verify:
+    all 8 categories detected, per-recipe files produced, and the flagged set
+    reported with reasons. Writes into a throwaway temp dir so the real
+    content/recipes/ corpus is never touched."""
+    if not MIGRATE_SCRIPT.exists():
         return {
             "score": None,
             "status": "not_applicable",
-            "detail": "migrate.py not present (Phase 3+). Excluded from composite; "
-            "does not fail Phase 1.",
+            "detail": "migrate.py not present (pre-Phase 3). Excluded from composite.",
         }
-    return {
-        "score": None,
-        "status": "not_applicable",
-        "detail": "migrate.py present but Phase-1 harness does not yet score it; "
-        "activate in Phase 3.",
-    }
+    if not MIGRATION_FIXTURE.exists():
+        return {
+            "score": 0.0,
+            "status": "fail",
+            "detail": f"migrate.py present but fixture missing: {MIGRATION_FIXTURE}",
+        }
+
+    dep_note = ensure_markdown_it()
+    checks: list[tuple[str, bool]] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        tmpdir = Path(tmp)
+        out_dir = tmpdir / "recipes"
+        report = tmpdir / "MIGRATION_REPORT.md"
+        res = run([
+            sys.executable, str(MIGRATE_SCRIPT),
+            "--input", str(MIGRATION_FIXTURE),
+            "--out", str(out_dir),
+            "--report", str(report),
+            "--json", "--force",
+        ])
+
+        summary = {}
+        if res.returncode == 0 and res.stdout.strip():
+            try:
+                summary = json.loads(res.stdout.strip().splitlines()[-1])
+            except json.JSONDecodeError:
+                summary = {}
+
+        clean_files = list(out_dir.glob("*.md")) if out_dir.is_dir() else []
+        review_dir = tmpdir / "_needs_review"
+        flagged_files = list(review_dir.glob("*.md")) if review_dir.is_dir() else []
+
+        checks.append(("migrate.py exited 0", res.returncode == 0 and not summary.get("error")))
+        checks.append(("all 8 categories detected", summary.get("categories_detected") == 8))
+        checks.append(("per-recipe files produced", len(clean_files) > 0))
+        checks.append((
+            "flagged recipes routed + reported with reasons",
+            len(flagged_files) > 0
+            and summary.get("flagged_count", 0) > 0
+            and report.exists()
+            and all(f.get("reasons") for f in summary.get("flagged", [])),
+        ))
+
+    ok = all(c[1] for c in checks)
+    detail = f"{dep_note}; " + "; ".join(f"{'OK' if v else 'FAIL'}: {n}" for n, v in checks)
+    if not ok and res.returncode != 0:
+        detail += f" stderr: {res.stderr[-200:]}"
+    return {"score": 1.0 if ok else 0.0, "status": "pass" if ok else "fail", "detail": detail}
 
 
 # --------------------------------------------------------------------------- #
