@@ -23,6 +23,7 @@ import migrate  # noqa: E402
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 SAMPLE = FIXTURES / "eval_sample.md"
 MISSING = FIXTURES / "missing_category.md"
+REAL_EXPORT = FIXTURES / "real_export_sample.md"
 
 
 def run_on(text: str, tmp: Path, force: bool = False, dry_run: bool = False) -> dict:
@@ -73,6 +74,100 @@ class YamlTests(unittest.TestCase):
             if c == "Desserts" and extra_desserts:
                 parts.append("\n" + extra_desserts)
         return "\n".join(parts)
+
+
+class HeadingCleaningTests(unittest.TestCase):
+    """Emphasis-wrapped headings (the real export format) must clean to plain text."""
+
+    def _clean(self, markdown_heading: str) -> str:
+        md = migrate.make_md()
+        tokens = md.parse(markdown_heading)
+        headings = migrate.build_headings(tokens)
+        return headings[0].text
+
+    def test_bold_category_cleaned(self):
+        self.assertEqual(self._clean("# **DESSERTS**\n"), "DESSERTS")
+
+    def test_bold_recipe_cleaned(self):
+        self.assertEqual(self._clean("## **APPLE PIE**\n"), "APPLE PIE")
+
+    def test_bold_italic_cleaned(self):
+        self.assertEqual(self._clean("## ***ALMOND BUTTER CUPS***\n"), "ALMOND BUTTER CUPS")
+
+    def test_special_chars_preserved(self):
+        self.assertEqual(
+            self._clean("## **ALMOND MACAROONS (AMYGDALOTA)**\n"),
+            "ALMOND MACAROONS (AMYGDALOTA)",
+        )
+        self.assertEqual(self._clean("## **PASTEIS DE NATA**\n"), "PASTEIS DE NATA")
+
+    def test_plain_heading_unchanged(self):
+        self.assertEqual(self._clean("## Weeknight Lemon Chicken\n"), "Weeknight Lemon Chicken")
+
+
+class TitleCaseTests(unittest.TestCase):
+    def test_all_caps_to_title_case(self):
+        self.assertEqual(migrate.title_case_display("APPLE PIE"), "Apple Pie")
+        self.assertEqual(migrate.title_case_display("NO-KNEAD RUSTIC BREAD"), "No-Knead Rustic Bread")
+        self.assertEqual(migrate.title_case_display("ALMOND MACAROONS (AMYGDALOTA)"), "Almond Macaroons (Amygdalota)")
+
+    def test_connectors_lowercased_except_first(self):
+        self.assertEqual(migrate.title_case_display("PASTEIS DE NATA"), "Pasteis de Nata")
+        self.assertEqual(
+            migrate.title_case_display("BACARDI RUM AND NUT CAKE"), "Bacardi Rum and Nut Cake"
+        )
+
+    def test_possessive_handled(self):
+        self.assertEqual(migrate.title_case_display("KRISTA'S"), "Krista's")
+        self.assertEqual(migrate.title_case_display("CARROT CAKE - STU'S"), "Carrot Cake - Stu's")
+
+    def test_mixed_case_left_untouched(self):
+        # Intentional authored casing must not be destroyed.
+        self.assertEqual(
+            migrate.title_case_display("BANANA CAKE (KIENOW’S - Sakineh’s favorite)"),
+            "BANANA CAKE (KIENOW’S - Sakineh’s favorite)",
+        )
+        self.assertEqual(migrate.title_case_display("Weeknight Lemon Chicken"), "Weeknight Lemon Chicken")
+
+
+class RealExportFormatTests(unittest.TestCase):
+    """End-to-end on the real-export-shaped fixture: bold-wrapped category + recipe
+    headings, ALL-CAPS titles, and the two category-name wording variants."""
+
+    def setUp(self):
+        self._dir = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._dir.name)
+        self.summary = run_on(REAL_EXPORT.read_text(), self.tmp)
+
+    def tearDown(self):
+        self._dir.cleanup()
+
+    def test_all_eight_categories_detected_no_halt(self):
+        self.assertEqual(self.summary["categories_detected"], 8)
+        self.assertEqual(self.summary["recipes_total"], 10)
+
+    def test_category_aliases_mapped_to_canonical(self):
+        beans = (self.tmp / "recipes" / "glazed-green-beans.md").read_text()
+        self.assertIn('category: "Vegetables & Sides"', beans)
+        soup = (self.tmp / "recipes" / "hearty-tomato-basil-soup.md").read_text()
+        self.assertIn('category: "Soups & Stews"', soup)
+
+    def test_allcaps_title_cleaned_and_title_cased(self):
+        pie = (self.tmp / "recipes" / "apple-pie.md").read_text()
+        self.assertIn('title: "Apple Pie"', pie)
+        self.assertIn('category: "Desserts"', pie)
+
+    def test_possessive_title_cased(self):
+        cookies = (self.tmp / "recipes" / "chocolate-chip-cookies-kristas.md").read_text()
+        self.assertIn('title: "Chocolate Chip Cookies - Krista\'s"', cookies)
+
+    def test_connector_lowercased_in_title(self):
+        nata = (self.tmp / "recipes" / "pasteis-de-nata.md").read_text()
+        self.assertIn('title: "Pasteis de Nata"', nata)
+
+    def test_mixed_case_title_preserved(self):
+        banana = (self.tmp / "recipes" / "banana-cake-kienows-sakinehs-favorite.md").read_text()
+        self.assertIn('title: "BANANA CAKE (KIENOW’S - Sakineh’s favorite)"', banana)
 
 
 class CleanRecipeTests(unittest.TestCase):

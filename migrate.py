@@ -58,6 +58,27 @@ CATEGORIES = [
     "Miscellaneous",
 ]
 
+# Known wording variants of the 8 categories as they actually appear as headings
+# in the real exported doc, mapped to their canonical name above. The source doc
+# titles two sections differently from the site's category list — this is an
+# explicit, deterministic alias table (NOT a guess): the heading text is matched
+# verbatim (normalized) and only these exact variants are accepted. Keys are
+# normalized (lowercase, whitespace-collapsed) the same way headings are.
+CATEGORY_ALIASES = {
+    "vegetables and side dishes": "Vegetables & Sides",
+    "soups/stews": "Soups & Stews",
+}
+
+# Connector words kept lowercase when title-casing an ALL-CAPS source title
+# (except as the first word). Conservative set — when unsure we prefer faithful.
+TITLE_SMALL_WORDS = {
+    "a", "an", "and", "as", "at", "by", "de", "for", "from", "in", "of",
+    "on", "or", "the", "to", "with",
+}
+
+# Apostrophe variants seen in the export (straight + curly + modifier letters).
+_APOSTROPHES = "'‘’ʼʻ"
+
 # Heuristic thresholds (non-whitespace character counts of the recipe body).
 FRAGMENT_MIN_CHARS = 40      # below this => likely a stray fragment
 MERGED_MAX_CHARS = 4000      # above this => likely several recipes merged
@@ -94,6 +115,70 @@ def normalize_heading(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
+def canonical_category_map() -> dict[str, str]:
+    """Normalized heading text -> canonical category name.
+
+    Includes the 8 canonical names plus the explicit CATEGORY_ALIASES for the
+    real doc's two differently-worded section headings. Matching is exact (on
+    the normalized key) — unknown headings still HALT, so this widens what's
+    recognized without ever guessing.
+    """
+    m = {normalize_heading(c): c for c in CATEGORIES}
+    for variant, canon in CATEGORY_ALIASES.items():
+        m[normalize_heading(variant)] = canon
+    return m
+
+
+# --------------------------------------------------------------------------- #
+# Title casing — the source titles are predominantly ALL-CAPS, which fights the
+# warm-cookbook goal. Convert an all-caps title to Title Case for the display
+# `title` frontmatter; leave anything already mixed-case untouched (faithful).
+# The slug is unaffected (slugify lowercases regardless).
+# --------------------------------------------------------------------------- #
+_WORD_RE = re.compile(rf"[^\W\d_]+(?:[{_APOSTROPHES}][^\W\d_]+)*", re.UNICODE)
+
+
+def _cap_word(word: str) -> str:
+    """Capitalize the first letter, lowercase the rest — turns KRISTA'S into
+    Krista's and AMYGDALOTA into Amygdalota while preserving apostrophes."""
+    out: list[str] = []
+    capped = False
+    for ch in word:
+        if not capped and ch.isalpha():
+            out.append(ch.upper())
+            capped = True
+        else:
+            out.append(ch.lower())
+    return "".join(out)
+
+
+def title_case_display(text: str) -> str:
+    """Title-case an ALL-CAPS source heading for display.
+
+    If the text already contains a lowercase letter it is left verbatim (it was
+    authored with intentional casing — e.g. a parenthetical like
+    "(KIENOW'S - Sakineh's favorite)" — and must not be destroyed). Connector
+    words stay lowercase except when first; separators/punctuation are kept as-is.
+    """
+    if any(c.islower() for c in text):
+        return text
+
+    parts: list[str] = []
+    last_end = 0
+    first = True
+    for m in _WORD_RE.finditer(text):
+        parts.append(text[last_end:m.start()])  # punctuation/space verbatim
+        word = m.group(0)
+        if not first and word.lower() in TITLE_SMALL_WORDS:
+            parts.append(word.lower())
+        else:
+            parts.append(_cap_word(word))
+        last_end = m.end()
+        first = False
+    parts.append(text[last_end:])
+    return "".join(parts)
+
+
 # --------------------------------------------------------------------------- #
 # Data model
 # --------------------------------------------------------------------------- #
@@ -127,6 +212,34 @@ def make_md() -> MarkdownIt:
     return MarkdownIt("commonmark").enable("table")
 
 
+def clean_heading_text(inline) -> str:
+    """Plain text of a heading with inline markup removed.
+
+    The real export wraps headings in emphasis (`# **DESSERTS**`,
+    `## **APPLE PIE**`). `inline.content` keeps the raw `**` markers, which
+    breaks category matching — so we walk the inline token's parsed children and
+    concatenate only the text/code leaves, dropping bold/italic markers while
+    preserving apostrophes, parentheses, hyphens and accented characters. Falls
+    back to stripping emphasis markers from the raw content if children are
+    unavailable (and for non-emphasis headings the result is unchanged).
+    """
+    if inline is None:
+        return ""
+    children = getattr(inline, "children", None)
+    if children:
+        parts: list[str] = []
+        for c in children:
+            if c.type in ("text", "code_inline"):
+                parts.append(c.content)
+            elif c.type in ("softbreak", "hardbreak"):
+                parts.append(" ")
+        text = "".join(parts).strip()
+        if text:
+            return text
+    # Fallback: strip surrounding/inline emphasis markers from the raw content.
+    return re.sub(r"(\*\*|__|\*|_)", "", inline.content or "").strip()
+
+
 def build_headings(tokens) -> list[Heading]:
     headings: list[Heading] = []
     for i, tok in enumerate(tokens):
@@ -134,7 +247,7 @@ def build_headings(tokens) -> list[Heading]:
             continue
         level = int(tok.tag[1])
         inline = tokens[i + 1] if i + 1 < len(tokens) else None
-        text = (inline.content if inline is not None else "").strip()
+        text = clean_heading_text(inline)
         start, end = (tok.map or [0, 0])
         headings.append(Heading(level=level, text=text, start=start, end=end))
     return headings
@@ -142,7 +255,7 @@ def build_headings(tokens) -> list[Heading]:
 
 def detect_categories(headings: list[Heading]) -> tuple[int, list[int]]:
     """Find the category level and indices; HALT loudly on any structural problem."""
-    canonical = {normalize_heading(c): c for c in CATEGORIES}
+    canonical = canonical_category_map()
     matches = [(i, h) for i, h in enumerate(headings) if normalize_heading(h.text) in canonical]
 
     if not matches:
@@ -187,7 +300,7 @@ def detect_categories(headings: list[Heading]) -> tuple[int, list[int]]:
 
 
 def extract_recipes(headings: list[Heading], lines: list[str], category_level: int) -> list[Recipe]:
-    canonical = {normalize_heading(c): c for c in CATEGORIES}
+    canonical = canonical_category_map()
     recipe_level = category_level + 1
     recipes: list[Recipe] = []
     current_category: str | None = None
@@ -415,6 +528,9 @@ def migrate(source_text: str, out_dir: Path, report_path: Path, force: bool, dry
     recipes = extract_recipes(headings, lines, category_level)
 
     for r in recipes:
+        # Title-case the (predominantly ALL-CAPS) source title for display; the
+        # slug derives from the cleaned title and is case-insensitive regardless.
+        r.title = title_case_display(r.title)
         r.slug = slugify(r.title) or "untitled"
         if r.slug == "untitled":
             r.reasons.append("could not derive a slug from the title")
