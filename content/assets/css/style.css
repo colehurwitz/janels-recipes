@@ -1,0 +1,462 @@
+/* ==========================================================================
+   Janel's Recipes — warm cookbook theme
+   Mobile-first. Self-hosted fonts (zero third-party requests). Print-friendly.
+   Font paths are RELATIVE to this file (../fonts/…) so they resolve correctly
+   under the /janels-recipes/ path prefix without needing the `url` filter.
+   ========================================================================== */
+
+/* --- Self-hosted fonts ---------------------------------------------------- */
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/fraunces-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/fraunces-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Lora";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/lora-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Lora";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/lora-400-italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Lora";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/lora-600.woff2") format("woff2");
+}
+
+/* --- Palette & tokens ----------------------------------------------------- */
+:root {
+  --cream: #fbf6ec;
+  --parchment: #f3e9d6;
+  --parchment-deep: #ead9bd;
+  --ink: #3a2f28;
+  --ink-soft: #6a5b50;
+  --terracotta: #c4673b;
+  --terracotta-deep: #a8512b;
+  --sage: #7c8a5f;
+  --rule: #e0d2ba;
+  --card-shadow: rgba(58, 47, 40, 0.12);
+
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Lora", Georgia, "Times New Roman", serif;
+
+  --tap: 48px; /* minimum tap target */
+  --maxw: 46rem;
+}
+
+/* --- Reset-ish base ------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--ink);
+  background-color: var(--cream);
+  background-image: radial-gradient(
+    circle at 50% 0,
+    var(--parchment) 0,
+    var(--cream) 60%
+  );
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+a {
+  color: var(--terracotta-deep);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--ink);
+  color: var(--cream);
+  padding: 0.75rem 1rem;
+  z-index: 100;
+}
+.skip-link:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+}
+
+/* --- Header / nav --------------------------------------------------------- */
+.site-header {
+  background: var(--parchment-deep);
+  border-bottom: 2px solid var(--rule);
+  padding: 1rem 1.1rem 0.75rem;
+  text-align: center;
+}
+
+.site-title {
+  display: inline-block;
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink);
+  padding: 0.25rem 0.5rem;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.site-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  text-decoration: none;
+  color: var(--ink-soft);
+}
+.site-nav a:hover,
+.site-nav a:focus {
+  background: var(--cream);
+  color: var(--terracotta-deep);
+}
+
+/* --- Main / footer -------------------------------------------------------- */
+main {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 1.5rem 1.1rem 3rem;
+}
+
+.site-footer {
+  border-top: 2px solid var(--rule);
+  background: var(--parchment-deep);
+  text-align: center;
+  color: var(--ink-soft);
+  padding: 1.4rem 1rem;
+  font-size: 0.95rem;
+}
+
+/* --- Homepage hero + search ---------------------------------------------- */
+.hero {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.hero-title {
+  font-size: 2.4rem;
+  margin: 0.5rem 0 0.25rem;
+}
+.hero-tagline {
+  font-style: italic;
+  color: var(--ink-soft);
+  margin: 0 0 1.5rem;
+}
+.search-wrap {
+  max-width: 32rem;
+  margin: 0 auto;
+}
+
+/* Tone Pagefind's UI toward the parchment palette. */
+:root {
+  --pagefind-ui-primary: var(--terracotta-deep);
+  --pagefind-ui-text: var(--ink);
+  --pagefind-ui-background: var(--cream);
+  --pagefind-ui-border: var(--rule);
+  --pagefind-ui-tag: var(--parchment);
+  --pagefind-ui-border-radius: 12px;
+  --pagefind-ui-font: var(--body);
+}
+
+/* --- Category cards grid -------------------------------------------------- */
+.categories-heading {
+  text-align: center;
+  font-size: 1.5rem;
+  margin: 2rem 0 1.2rem;
+}
+.category-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+.category-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 72px;
+  padding: 1rem 1.2rem;
+  background: var(--parchment);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: 0 2px 6px var(--card-shadow);
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.category-card:hover,
+.category-card:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px var(--card-shadow);
+  border-color: var(--terracotta);
+}
+.category-card-name {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+.category-card-count {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  margin-top: 0.15rem;
+}
+
+/* --- Category page -------------------------------------------------------- */
+.category-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  color: var(--terracotta-deep);
+  margin: 0;
+}
+.category-header h1 {
+  font-size: 2.1rem;
+  margin: 0.2rem 0;
+}
+.category-count {
+  color: var(--ink-soft);
+  margin: 0;
+}
+.recipe-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.recipe-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: var(--tap);
+  padding: 0.85rem 1.1rem;
+  background: var(--parchment);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.recipe-link:hover,
+.recipe-link:focus {
+  border-color: var(--terracotta);
+  background: #fff;
+}
+.recipe-link-title {
+  font-size: 1.1rem;
+}
+.empty-note {
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+/* --- Recipe page ---------------------------------------------------------- */
+.recipe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.back-link {
+  text-decoration: none;
+  color: var(--ink-soft);
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+}
+.print-btn {
+  font-family: var(--body);
+  font-size: 1rem;
+  min-height: var(--tap);
+  padding: 0.5rem 1.1rem;
+  background: var(--terracotta);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.print-btn:hover,
+.print-btn:focus {
+  background: var(--terracotta-deep);
+}
+.recipe-title {
+  font-size: 2.2rem;
+  margin: 0 0 0.25rem;
+}
+.recipe-category {
+  display: inline-block;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--terracotta-deep);
+  margin: 0 0 1rem;
+}
+.recipe-hero {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--rule);
+  margin-bottom: 1.4rem;
+}
+.recipe-content h2 {
+  font-size: 1.4rem;
+  margin: 1.6rem 0 0.6rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+.recipe-content ul,
+.recipe-content ol {
+  padding-left: 1.3rem;
+}
+.recipe-content li {
+  margin: 0.35rem 0;
+  break-inside: avoid;
+}
+.recipe-notes {
+  margin-top: 2rem;
+  padding: 1rem 1.2rem;
+  background: var(--parchment);
+  border-left: 4px solid var(--sage);
+  border-radius: 0 10px 10px 0;
+}
+.recipe-notes h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.2rem;
+}
+.recipe-notes p {
+  margin: 0;
+  font-style: italic;
+}
+
+/* --- Larger screens (progressive enhancement, mobile-first base above) ---- */
+@media screen and (min-width: 40rem) {
+  body {
+    font-size: 1.125rem;
+  }
+  .site-title {
+    font-size: 1.9rem;
+  }
+  .hero-title {
+    font-size: 3rem;
+  }
+  .category-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.1rem;
+  }
+  .category-card {
+    min-height: 96px;
+  }
+}
+
+@media screen and (min-width: 60rem) {
+  .category-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* --- Print: clean black-on-white recipe card ------------------------------ */
+@media print {
+  :root {
+    --ink: #000;
+  }
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 12pt;
+  }
+  /* Hide all chrome and interactive bits. */
+  .site-header,
+  .site-nav,
+  .site-footer,
+  .skip-link,
+  .recipe-actions,
+  .recipe-link-badge {
+    display: none !important;
+  }
+  main {
+    max-width: none;
+    padding: 0;
+  }
+  a {
+    color: #000;
+    text-decoration: none;
+  }
+  .recipe-hero {
+    max-height: 3in;
+    width: auto;
+    border: none;
+  }
+  .recipe-title,
+  .recipe-content h2,
+  .recipe-content h3 {
+    break-after: avoid;
+  }
+  .recipe-content li,
+  .recipe-content p,
+  .recipe-notes {
+    break-inside: avoid;
+  }
+  .recipe-notes {
+    border-left: 2px solid #000;
+    background: none;
+  }
+}

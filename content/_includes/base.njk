@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% if title %}{{ title }} · {% endif %}{{ site.title }}</title>
+    <meta name="description" content="{{ description or site.description }}" />
+    <link rel="stylesheet" href="{{ '/assets/css/style.css' | url }}" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    {# Chrome — excluded from search so results only ever surface recipe text. #}
+    <header class="site-header" data-pagefind-ignore>
+      <a class="site-title" href="{{ '/' | url }}">{{ site.title }}</a>
+      <nav class="site-nav" aria-label="Recipe categories">
+        {% for category in categories %}
+          <a href="{{ ('/categories/' + (category | categorySlug) + '/') | url }}">{{ category }}</a>
+        {% endfor %}
+      </nav>
+    </header>
+
+    <main id="main">
+      {{ content | safe }}
+    </main>
+
+    <footer class="site-footer" data-pagefind-ignore>
+      <p>{{ site.title }} — kept by hand, with love. 🥧</p>
+    </footer>
+  </body>
+</html>

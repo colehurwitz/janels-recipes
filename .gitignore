@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+_site/
+
+# Pagefind cache
+.pagefind/
+
+# Live GitHub session credential for Phase-5 screenshot capture — NEVER commit
+auth.json
+
+# Factory infrastructure (a symlink to shared, machine-local state). Not project
+# source — never push it to the public repo. eval/score.py reads the eval profile
+# from here when present and falls back to built-in weights when it isn't.
+.factory
+
+# OS / editor cruft
+.DS_Store
+*.log
+npm-debug.log*

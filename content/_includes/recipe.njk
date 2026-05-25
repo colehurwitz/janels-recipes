@@ -1,0 +1,32 @@
+---
+layout: base.njk
+---
+{# Recipe page. `data-pagefind-body` marks this article as the searchable unit;
+   the chrome in base.njk is `data-pagefind-ignore`d. Optional fields (image,
+   notes) render only when present — forgiving frontmatter, no hard-fail. #}
+<article class="recipe" data-pagefind-body>
+  <div class="recipe-actions" data-pagefind-ignore>
+    <a class="back-link" href="{{ ('/categories/' + (category | categorySlug) + '/') | url }}">← {{ category }}</a>
+    <button type="button" class="print-btn" onclick="window.print()">🖨 Print this recipe</button>
+  </div>
+
+  <h1 class="recipe-title">{{ title }}</h1>
+  {% if category %}
+    <p class="recipe-category" data-pagefind-filter="category">{{ category }}</p>
+  {% endif %}
+
+  {% if image %}
+    <img class="recipe-hero" src="{{ ('/images/' + image) | url }}" alt="{{ title }}" />
+  {% endif %}
+
+  <div class="recipe-content">
+    {{ content | safe }}
+  </div>
+
+  {% if notes %}
+    <aside class="recipe-notes">
+      <h2>Notes</h2>
+      <p>{{ notes }}</p>
+    </aside>
+  {% endif %}
+</article>

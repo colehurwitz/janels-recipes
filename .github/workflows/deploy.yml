@@ -1,0 +1,64 @@
+name: Build and deploy to GitHub Pages
+
+# Every commit to main (e.g. the editor saving a recipe in the web UI) rebuilds
+# and redeploys. workflow_dispatch gives the owner a manual re-run button as a
+# safety net after a bad edit.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Required by the official Pages deploy action.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Don't cancel an in-progress deploy when rapid web-UI commits land.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # CI step order is LOCKED: build -> pagefind -> upload.
+      # Pagefind crawls Eleventy's BUILT HTML, so it must run after the build and
+      # before the artifact is uploaded, or search ships empty.
+      - name: Build site (Eleventy)
+        run: npx @11ty/eleventy
+
+      - name: Build search index (Pagefind)
+        run: npx -y pagefind --site _site
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

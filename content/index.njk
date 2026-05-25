@@ -1,0 +1,50 @@
+---
+layout: base.njk
+title: ""
+permalink: /
+---
+{# Pagefind UI assets live under /pagefind/, written by `pagefind --site _site`
+   AFTER the Eleventy build. They won't exist during `eleventy` alone — that's
+   expected; they load at runtime on the built/deployed site. bundlePath is set
+   explicitly to the prefixed path so search fetches resolve under the subpath. #}
+<link href="{{ '/pagefind/pagefind-ui.css' | url }}" rel="stylesheet" />
+
+<section class="hero" data-pagefind-ignore>
+  <h1 class="hero-title">{{ site.title }}</h1>
+  <p class="hero-tagline">{{ site.tagline }}</p>
+
+  <div class="search-wrap">
+    <div id="search"></div>
+  </div>
+</section>
+
+<section class="categories" aria-label="Browse by category">
+  <h2 class="categories-heading" data-pagefind-ignore>Browse the cookbook</h2>
+  <ul class="category-grid">
+    {% for category in categories %}
+      <li>
+        <a class="category-card" href="{{ ('/categories/' + (category | categorySlug) + '/') | url }}">
+          <span class="category-card-name">{{ category }}</span>
+          <span class="category-card-count">
+            {{ collections.recipesByCategory[category] | length }} recipe{% if (collections.recipesByCategory[category] | length) != 1 %}s{% endif %}
+          </span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<script src="{{ '/pagefind/pagefind-ui.js' | url }}"></script>
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    if (typeof PagefindUI !== "undefined") {
+      new PagefindUI({
+        element: "#search",
+        bundlePath: "{{ '/pagefind/' | url }}",
+        showSubResults: true,
+        showImages: false,
+        translations: { placeholder: "Search recipes…" },
+      });
+    }
+  });
+</script>

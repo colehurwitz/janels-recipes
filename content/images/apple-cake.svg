@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" role="img" aria-label="Illustration of an apple cake on a plate">
+  <rect width="800" height="480" fill="#f3e9d6"/>
+  <rect width="800" height="480" fill="url(#g)"/>
+  <defs>
+    <radialGradient id="g" cx="50%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#fbf6ec"/>
+      <stop offset="100%" stop-color="#ead9bd"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="400" cy="360" rx="250" ry="40" fill="#e0d2ba"/>
+  <ellipse cx="400" cy="350" rx="220" ry="32" fill="#fbf6ec" stroke="#e0d2ba" stroke-width="3"/>
+  <path d="M210 350 Q400 250 590 350 L560 300 Q400 230 240 300 Z" fill="#c4673b"/>
+  <path d="M240 300 Q400 230 560 300 L545 270 Q400 215 255 270 Z" fill="#d98a5a"/>
+  <path d="M255 270 Q400 215 545 270 L530 245 Q400 205 270 245 Z" fill="#e7a877"/>
+  <ellipse cx="400" cy="232" rx="135" ry="28" fill="#f0c79a"/>
+  <circle cx="340" cy="222" r="14" fill="#a8512b"/>
+  <circle cx="400" cy="214" r="14" fill="#a8512b"/>
+  <circle cx="460" cy="222" r="14" fill="#a8512b"/>
+  <circle cx="370" cy="236" r="12" fill="#b85f33"/>
+  <circle cx="430" cy="236" r="12" fill="#b85f33"/>
+  <path d="M400 196 q6 -16 0 -28" stroke="#7c8a5f" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <ellipse cx="412" cy="176" rx="14" ry="8" fill="#7c8a5f" transform="rotate(25 412 176)"/>
+</svg>
