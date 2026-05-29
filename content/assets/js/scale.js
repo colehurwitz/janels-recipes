@@ -38,11 +38,13 @@
   var SNAP_TARGETS = [
     { value: 0, glyph: "" },
     { value: 1 / 8, glyph: "⅛" },
+    { value: 1 / 6, glyph: "⅙" },
     { value: 1 / 4, glyph: "¼" },
     { value: 1 / 3, glyph: "⅓" },
     { value: 1 / 2, glyph: "½" },
     { value: 2 / 3, glyph: "⅔" },
     { value: 3 / 4, glyph: "¾" },
+    { value: 5 / 6, glyph: "⅚" },
     { value: 1, glyph: "" } // carries to the whole number
   ];
   var SNAP_TOLERANCE = 0.075;
@@ -76,7 +78,21 @@
 
   // If the leading number is immediately followed by a size unit it describes a
   // dimension (e.g. 1/8-1/4" thick, 9 inch pan, 5 cm) and must NOT be scaled.
-  var SIZE_UNIT_RE = /^\s*(?:"|″|′|''|inch(?:es)?\b|cm\b)/i;
+  var SIZE_UNIT_RE = /^\s*(?:"|″|′|”|’|''|inch(?:es)?\b|cm\b)/i;
+
+  // A leading number immediately followed by "x"/"×" then a digit is a pan
+  // dimension (e.g. "9x13 pan") — the "9" is not an ingredient amount.
+  var PAN_DIM_RE = /^\s*[x×]\s*\d/i;
+
+  // A leading number followed by a temperature/time/degree marker is not an
+  // ingredient amount (e.g. "350°F oven", "10 minutes", "2 hours"). Only ever
+  // suppress scaling for these — never scale them. We deliberately do NOT match
+  // a bare "F"/"C": with the /i flag it also matches lowercase "c" (= cups, a
+  // common ingredient abbreviation), wrongly suppressing scaling for "2 c flour".
+  // Temperatures with a degree symbol (°/℉/℃) are still caught below, and
+  // letter-led lines like "Bake at 350 F" already fail LEAD_RE.
+  var NON_AMOUNT_RE =
+    /^\s*(?:°|℉|℃|degrees?\b|min(?:ute)?s?\b|hours?\b|seconds?\b)/i;
 
   // Parse a single quantity string into a decimal, or null if unparseable.
   function valueToDecimal(raw) {
@@ -158,8 +174,8 @@
 
     var token = match[1];
     var rest = text.slice(token.length);
-    if (SIZE_UNIT_RE.test(rest)) {
-      return null; // dimension, not an ingredient amount
+    if (SIZE_UNIT_RE.test(rest) || NON_AMOUNT_RE.test(rest) || PAN_DIM_RE.test(rest)) {
+      return null; // dimension, pan size, or temperature/time marker, not an amount
     }
 
     var span = document.createElement("span");
@@ -169,7 +185,7 @@
     if (range) {
       var lo = valueToDecimal(range[1]);
       var hi = valueToDecimal(range[2]);
-      if (lo == null || hi == null || lo <= 0) {
+      if (lo == null || hi == null || lo <= 0 || hi <= 0 || hi < lo) {
         return null;
       }
       span.setAttribute("data-base-lo", String(lo));
@@ -181,6 +197,9 @@
       }
       span.setAttribute("data-base", String(base));
     }
+    // Preserve the original token verbatim so the 1x render is byte-identical
+    // to the source text (no snapping/reformatting until the user scales).
+    span.setAttribute("data-orig", token);
     span.textContent = token;
 
     var after = document.createTextNode(rest);
@@ -192,6 +211,14 @@
 
   // Recompute the visible text of one quantity span for the given factor.
   function renderSpan(span, factor) {
+    // At 1x, show the original source text verbatim — never reformat/snap.
+    if (factor === 1) {
+      var orig = span.getAttribute("data-orig");
+      if (orig !== null) {
+        span.textContent = orig;
+        return;
+      }
+    }
     var lo = span.getAttribute("data-base-lo");
     if (lo !== null) {
       var hi = span.getAttribute("data-base-hi");
