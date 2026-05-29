@@ -654,8 +654,11 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"error": msg}))
         return 2
 
-    source_text = src_path.read_text(encoding="utf-8")
     try:
+        # read_text is INSIDE the guarded block so read failures (e.g. a
+        # non-UTF-8 file raising UnicodeDecodeError) are converted to the same
+        # one-line --json error contract rather than escaping as a raw traceback.
+        source_text = src_path.read_text(encoding="utf-8")
         summary = migrate(
             source_text=source_text,
             out_dir=Path(args.out),
@@ -669,6 +672,14 @@ def main(argv: list[str] | None = None) -> int:
         if args.json:
             # --json contract: exactly one JSON object on STDOUT (here the error);
             # the human-readable HALTED line goes to stderr above.
+            print(json.dumps({"error": str(exc)}))
+        return 1
+    except Exception as exc:
+        # Any other failure (read errors, unexpected bugs) is still converted to
+        # the same contract: one JSON line on STDOUT in --json mode, a log line on
+        # stderr, and a non-zero exit. Never escape as a raw traceback on stdout.
+        logger.error("MIGRATION FAILED — %s", exc)
+        if args.json:
             print(json.dumps({"error": str(exc)}))
         return 1
 
