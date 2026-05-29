@@ -78,6 +78,12 @@
   // dimension (e.g. 1/8-1/4" thick, 9 inch pan, 5 cm) and must NOT be scaled.
   var SIZE_UNIT_RE = /^\s*(?:"|″|′|''|inch(?:es)?\b|cm\b)/i;
 
+  // A leading number followed by a temperature/time/degree marker is not an
+  // ingredient amount (e.g. "350°F oven", "10 minutes", "2 hours"). Only ever
+  // suppress scaling for these — never scale them.
+  var NON_AMOUNT_RE =
+    /^\s*(?:°|℉|℃|[FC]\b|degrees?\b|min(?:ute)?s?\b|hours?\b|seconds?\b)/i;
+
   // Parse a single quantity string into a decimal, or null if unparseable.
   function valueToDecimal(raw) {
     var str = raw.trim();
@@ -158,8 +164,8 @@
 
     var token = match[1];
     var rest = text.slice(token.length);
-    if (SIZE_UNIT_RE.test(rest)) {
-      return null; // dimension, not an ingredient amount
+    if (SIZE_UNIT_RE.test(rest) || NON_AMOUNT_RE.test(rest)) {
+      return null; // dimension or temperature/time marker, not an amount
     }
 
     var span = document.createElement("span");
@@ -169,7 +175,7 @@
     if (range) {
       var lo = valueToDecimal(range[1]);
       var hi = valueToDecimal(range[2]);
-      if (lo == null || hi == null || lo <= 0) {
+      if (lo == null || hi == null || lo <= 0 || hi <= 0 || hi < lo) {
         return null;
       }
       span.setAttribute("data-base-lo", String(lo));
@@ -181,6 +187,9 @@
       }
       span.setAttribute("data-base", String(base));
     }
+    // Preserve the original token verbatim so the 1x render is byte-identical
+    // to the source text (no snapping/reformatting until the user scales).
+    span.setAttribute("data-orig", token);
     span.textContent = token;
 
     var after = document.createTextNode(rest);
@@ -192,6 +201,14 @@
 
   // Recompute the visible text of one quantity span for the given factor.
   function renderSpan(span, factor) {
+    // At 1x, show the original source text verbatim — never reformat/snap.
+    if (factor === 1) {
+      var orig = span.getAttribute("data-orig");
+      if (orig !== null) {
+        span.textContent = orig;
+        return;
+      }
+    }
     var lo = span.getAttribute("data-base-lo");
     if (lo !== null) {
       var hi = span.getAttribute("data-base-hi");
