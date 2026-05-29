@@ -38,11 +38,13 @@
   var SNAP_TARGETS = [
     { value: 0, glyph: "" },
     { value: 1 / 8, glyph: "⅛" },
+    { value: 1 / 6, glyph: "⅙" },
     { value: 1 / 4, glyph: "¼" },
     { value: 1 / 3, glyph: "⅓" },
     { value: 1 / 2, glyph: "½" },
     { value: 2 / 3, glyph: "⅔" },
     { value: 3 / 4, glyph: "¾" },
+    { value: 5 / 6, glyph: "⅚" },
     { value: 1, glyph: "" } // carries to the whole number
   ];
   var SNAP_TOLERANCE = 0.075;
@@ -76,7 +78,11 @@
 
   // If the leading number is immediately followed by a size unit it describes a
   // dimension (e.g. 1/8-1/4" thick, 9 inch pan, 5 cm) and must NOT be scaled.
-  var SIZE_UNIT_RE = /^\s*(?:"|″|′|''|inch(?:es)?\b|cm\b)/i;
+  var SIZE_UNIT_RE = /^\s*(?:"|″|′|”|’|''|inch(?:es)?\b|cm\b)/i;
+
+  // A leading number immediately followed by "x"/"×" then a digit is a pan
+  // dimension (e.g. "9x13 pan") — the "9" is not an ingredient amount.
+  var PAN_DIM_RE = /^\s*[x×]\s*\d/i;
 
   // A leading number followed by a temperature/time/degree marker is not an
   // ingredient amount (e.g. "350°F oven", "10 minutes", "2 hours"). Only ever
@@ -164,8 +170,8 @@
 
     var token = match[1];
     var rest = text.slice(token.length);
-    if (SIZE_UNIT_RE.test(rest) || NON_AMOUNT_RE.test(rest)) {
-      return null; // dimension or temperature/time marker, not an amount
+    if (SIZE_UNIT_RE.test(rest) || NON_AMOUNT_RE.test(rest) || PAN_DIM_RE.test(rest)) {
+      return null; // dimension, pan size, or temperature/time marker, not an amount
     }
 
     var span = document.createElement("span");
