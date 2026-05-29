@@ -44,12 +44,12 @@ layout: base.njk
 {
   "@context": "https://schema.org",
   "@type": "Recipe",
-  "name": {{ title | dump | safe }},
-  "author": { "@type": "Organization", "name": {{ site.title | dump | safe }} },
-  "description": {{ (notes if notes else site.description) | dump | safe }},
-  "url": {{ (site.url + page.url) | dump | safe }},
-  "mainEntityOfPage": {{ (site.url + page.url) | dump | safe }}{% if category %},
-  "recipeCategory": {{ category | dump | safe }}{% endif %}{% if image %},
-  "image": {{ (site.url + "/images/" + image) | dump | safe }}{% endif %}
+  "name": {{ title | dump | replace("<", "\\u003c") | safe }},
+  "author": { "@type": "Organization", "name": {{ site.title | dump | replace("<", "\\u003c") | safe }} },
+  "description": {{ (notes if notes else site.description) | dump | replace("<", "\\u003c") | safe }},
+  "url": {{ (site.url + page.url) | dump | replace("<", "\\u003c") | safe }},
+  "mainEntityOfPage": {{ (site.url + page.url) | dump | replace("<", "\\u003c") | safe }}{% if category %},
+  "recipeCategory": {{ category | dump | replace("<", "\\u003c") | safe }}{% endif %}{% if image %},
+  "image": {{ (site.url + "/images/" + image) | dump | replace("<", "\\u003c") | safe }}{% endif %}
 }
 </script>
