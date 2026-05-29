@@ -9,7 +9,8 @@
     "build": "eleventy",
     "serve": "eleventy --serve",
     "search": "pagefind --site _site",
-    "build:full": "eleventy && pagefind --site _site"
+    "build:full": "eleventy && pagefind --site _site",
+    "test": "python3 -m pytest tests/ -q"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
