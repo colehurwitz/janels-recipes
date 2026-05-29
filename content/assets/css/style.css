@@ -460,3 +460,69 @@ main {
     background: none;
   }
 }
+
+/* === Recipe scaler toolbar (injected by /assets/js/scale.js) ============== *
+ * Added only when JavaScript is enabled and a recipe has scalable amounts.
+ * Buttons are real <button> elements, so they inherit the existing
+ * button:focus / .print-btn:focus focus-ring defined above. */
+.recipe-scaler {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 1.25rem;
+}
+
+.recipe-scaler .scale-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-right: 0.15rem;
+}
+
+.scale-btn {
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.scale-btn:hover {
+  border-color: var(--accent);
+}
+
+.scale-btn[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.scale-status {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-left: 0.25rem;
+}
+
+/* Static, print-only note of the chosen scale; hidden on screen. */
+.scale-indicator {
+  display: none;
+}
+
+/* Print: hide the interactive toolbar, reveal the static scale note.
+ * Separate @media print block — the existing print rules above are untouched. */
+@media print {
+  .recipe-scaler {
+    display: none !important;
+  }
+
+  .scale-indicator {
+    display: block;
+    font-size: 0.9rem;
+    color: #000;
+    margin: 0 0 0.5rem;
+  }
+}

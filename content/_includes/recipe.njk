@@ -15,6 +15,9 @@ layout: base.njk
     <p class="recipe-category" data-pagefind-filter="category">{{ category }}</p>
   {% endif %}
 
+  {# Populated by scale.js when a non-1x factor is active; print-only (CSS). #}
+  <p class="scale-indicator" aria-hidden="true"></p>
+
   {% if image %}
     <img class="recipe-hero" src="{{ ('/images/' + image) | url }}" alt="{{ title }}" />
   {% endif %}
@@ -30,3 +33,7 @@ layout: base.njk
     </aside>
   {% endif %}
 </article>
+
+{# Progressive enhancement: injects the ½×/1×/2×/3× scaling toolbar. Plain
+   page renders fine without it. `| url` keeps the path link_integrity-valid. #}
+<script src="{{ '/assets/js/scale.js' | url }}" defer></script>
