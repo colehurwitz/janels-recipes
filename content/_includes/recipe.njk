@@ -30,3 +30,26 @@ layout: base.njk
     </aside>
   {% endif %}
 </article>
+
+{# schema.org Recipe structured data (SEO). Built ENTIRELY from existing
+   frontmatter — no new required field, so the auto-discovery contract holds.
+   Values go through `| dump` (JSON.stringify) so quotes/newlines are escaped,
+   then `| safe` so Nunjucks doesn't HTML-escape the JSON. Absolute URLs use
+   site.url + the RAW page.url: site.url already carries the /janels-recipes
+   path prefix, and page.url is pre-prefix, so they compose to exactly one
+   prefix (the `| url` filter would re-add it and double it). Optional fields
+   (recipeCategory, image) carry their own leading comma so the JSON stays
+   valid whether or not they render. #}
+<script type="application/ld+json" data-pagefind-ignore>
+{
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  "name": {{ title | dump | replace("<", "\\u003c") | safe }},
+  "author": { "@type": "Organization", "name": {{ site.title | dump | replace("<", "\\u003c") | safe }} },
+  "description": {{ (notes if notes else site.description) | dump | replace("<", "\\u003c") | safe }},
+  "url": {{ (site.url + page.url) | dump | replace("<", "\\u003c") | safe }},
+  "mainEntityOfPage": {{ (site.url + page.url) | dump | replace("<", "\\u003c") | safe }}{% if category %},
+  "recipeCategory": {{ category | dump | replace("<", "\\u003c") | safe }}{% endif %}{% if image %},
+  "image": {{ (site.url + "/images/" + image) | dump | replace("<", "\\u003c") | safe }}{% endif %}
+}
+</script>
