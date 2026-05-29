@@ -66,6 +66,7 @@ body {
   font-size: 1.0625rem;
   line-height: 1.65;
   color: var(--ink);
+  text-wrap: pretty; /* avoid single-word orphans in body text (headings use balance) */
   background-color: var(--cream);
   background-image: radial-gradient(
     circle at 50% 0,
@@ -82,6 +83,7 @@ h3 {
   font-weight: 600;
   line-height: 1.15;
   color: var(--ink);
+  text-wrap: balance; /* even out line lengths; avoid lone last words */
 }
 
 a {
@@ -179,6 +181,7 @@ main {
   font-style: italic;
   color: var(--ink-soft);
   margin: 0 0 1.5rem;
+  text-wrap: pretty; /* prevent a single-word orphan on the last line */
 }
 .search-wrap {
   max-width: 32rem;
