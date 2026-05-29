@@ -641,7 +641,9 @@ def main(argv: list[str] | None = None) -> int:
         msg = f"--input must be a LOCAL file path, not a URL ({args.input!r})."
         logger.error(msg)
         if args.json:
-            print(json.dumps({"error": msg}), file=sys.stderr)
+            # --json contract: exactly one machine-readable JSON object on STDOUT
+            # (here the error); the human-readable line goes to stderr above.
+            print(json.dumps({"error": msg}))
         return 2
 
     src_path = Path(args.input)
@@ -649,7 +651,7 @@ def main(argv: list[str] | None = None) -> int:
         msg = f"input file not found: {src_path}"
         logger.error(msg)
         if args.json:
-            print(json.dumps({"error": msg}), file=sys.stderr)
+            print(json.dumps({"error": msg}))
         return 2
 
     source_text = src_path.read_text(encoding="utf-8")
@@ -665,8 +667,9 @@ def main(argv: list[str] | None = None) -> int:
     except MigrationError as exc:
         logger.error("MIGRATION HALTED — %s", exc)
         if args.json:
-            # Keep STDOUT clean (summary-only contract); emit the error JSON on stderr.
-            print(json.dumps({"error": str(exc)}), file=sys.stderr)
+            # --json contract: exactly one JSON object on STDOUT (here the error);
+            # the human-readable HALTED line goes to stderr above.
+            print(json.dumps({"error": str(exc)}))
         return 1
 
     if args.json:
