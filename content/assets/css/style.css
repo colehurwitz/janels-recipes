@@ -7,20 +7,6 @@
 
 /* --- Self-hosted fonts ---------------------------------------------------- */
 @font-face {
-  font-family: "Fraunces";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url("../fonts/fraunces-400.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Fraunces";
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url("../fonts/fraunces-600.woff2") format("woff2");
-}
-@font-face {
   font-family: "Lora";
   font-style: normal;
   font-weight: 400;
@@ -55,7 +41,7 @@
   --rule: #e0d2ba;
   --card-shadow: rgba(58, 47, 40, 0.12);
 
-  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --display: "Lora", Georgia, "Times New Roman", serif;
   --body: "Lora", Georgia, "Times New Roman", serif;
 
   --tap: 48px; /* minimum tap target */
