@@ -86,9 +86,13 @@
 
   // A leading number followed by a temperature/time/degree marker is not an
   // ingredient amount (e.g. "350°F oven", "10 minutes", "2 hours"). Only ever
-  // suppress scaling for these — never scale them.
+  // suppress scaling for these — never scale them. We deliberately do NOT match
+  // a bare "F"/"C": with the /i flag it also matches lowercase "c" (= cups, a
+  // common ingredient abbreviation), wrongly suppressing scaling for "2 c flour".
+  // Temperatures with a degree symbol (°/℉/℃) are still caught below, and
+  // letter-led lines like "Bake at 350 F" already fail LEAD_RE.
   var NON_AMOUNT_RE =
-    /^\s*(?:°|℉|℃|[FC]\b|degrees?\b|min(?:ute)?s?\b|hours?\b|seconds?\b)/i;
+    /^\s*(?:°|℉|℃|degrees?\b|min(?:ute)?s?\b|hours?\b|seconds?\b)/i;
 
   // Parse a single quantity string into a decimal, or null if unparseable.
   function valueToDecimal(raw) {
