@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import re
 import sys
 import time
@@ -44,6 +45,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from markdown_it import MarkdownIt
+
+# Module logger. Handlers/levels are configured in main() (StreamHandler ->
+# STDERR). Everything observable about the run is emitted through this logger so
+# that --json STDOUT stays exactly one line (the JSON summary). When migrate()
+# is called as a library (e.g. the test-suite) with no handler configured, the
+# logging "last resort" handler still routes WARNING+ to stderr — never stdout.
+logger = logging.getLogger("migrate")
 
 # The 8 fixed categories from the source doc's table of contents. SINGLE SOURCE
 # OF TRUTH must agree with content/_data/categories.js.
@@ -270,6 +278,7 @@ def detect_categories(headings: list[Heading]) -> tuple[int, list[int]]:
             "refusing to guess the document structure."
         )
     category_level = levels.pop()
+    logger.debug("category headings appear at level H%d", category_level)
 
     found = [canonical[normalize_heading(h.text)] for _, h in matches]
     counts = Counter(found)
@@ -296,6 +305,10 @@ def detect_categories(headings: list[Heading]) -> tuple[int, list[int]]:
                     "the document does not fit the category->recipe nesting; refusing to guess."
                 )
 
+    logger.info(
+        "detected all %d categories at level H%d: %s",
+        len(CATEGORIES), category_level, ", ".join(found),
+    )
     return category_level, [i for i, _ in matches]
 
 
@@ -320,7 +333,9 @@ def extract_recipes(headings: list[Heading], lines: list[str], category_level: i
                     boundary = headings[j].start
                     break
             body = "\n".join(lines[h.end:boundary]).strip()
+            logger.debug("recipe %r under %s (%d body chars)", h.text, current_category, len(body))
             recipes.append(Recipe(title=h.text, category=current_category, body=body))
+    logger.info("extracted %d recipe(s) across %d categories", len(recipes), len(CATEGORIES))
     return recipes
 
 
@@ -387,6 +402,8 @@ def analyze_body(body: str, md: MarkdownIt) -> list[str]:
     if any(t.type == "table_open" for t in tokens) or _is_pipe_table(body):
         reasons.append("table in source — verify formatting after migration")
 
+    if reasons:
+        logger.debug("body analysis flagged %d reason(s): %s", len(reasons), "; ".join(reasons))
     return reasons
 
 
@@ -394,6 +411,9 @@ def flag_duplicate_slugs(recipes: list[Recipe]) -> None:
     counts = Counter(r.slug for r in recipes)
     for r in recipes:
         if counts[r.slug] > 1:
+            logger.warning(
+                "duplicate slug %r — %d recipes map to the same filename", r.slug, counts[r.slug]
+            )
             r.reasons.append(
                 f"duplicate slug '{r.slug}.md' — {counts[r.slug]} recipes map to the same filename"
             )
@@ -451,15 +471,24 @@ def write_outputs(
         used.add(target)
 
         if dry_run:
+            logger.debug("dry-run: would write %s", target)
             results.append(WriteResult(r, "dry-run", target))
             continue
         if target.exists() and not force:
+            logger.warning("skipping existing file (use --force to overwrite): %s", target)
             results.append(WriteResult(r, "skipped-exists", target))
             continue
         target_dir.mkdir(parents=True, exist_ok=True)
         target.write_text(render_recipe(r), encoding="utf-8")
+        logger.debug("wrote %s", target)
         results.append(WriteResult(r, "written", target))
 
+    written = sum(1 for w in results if w.status == "written")
+    skipped = sum(1 for w in results if w.status == "skipped-exists")
+    logger.info(
+        "write_outputs: %d written, %d skipped, %d dry-run",
+        written, skipped, sum(1 for w in results if w.status == "dry-run"),
+    )
     return results
 
 
@@ -513,16 +542,25 @@ def write_report(report_path: Path, recipes: list[Recipe], results: list[WriteRe
 
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text("\n".join(out), encoding="utf-8")
+    logger.info(
+        "wrote migration report to %s (%d flagged, %d skipped)",
+        report_path, len(flagged), len(skipped),
+    )
 
 
 # --------------------------------------------------------------------------- #
 # Orchestration
 # --------------------------------------------------------------------------- #
 def migrate(source_text: str, out_dir: Path, report_path: Path, force: bool, dry_run: bool, source_name: str) -> dict:
+    logger.info(
+        "starting migration of %s -> %s (force=%s, dry_run=%s)",
+        source_name, out_dir, force, dry_run,
+    )
     md = make_md()
     lines = source_text.splitlines()
     tokens = md.parse(source_text)
     headings = build_headings(tokens)
+    logger.debug("parsed %d source lines, %d heading(s)", len(lines), len(headings))
 
     category_level, _ = detect_categories(headings)
     recipes = extract_recipes(headings, lines, category_level)
@@ -541,6 +579,10 @@ def migrate(source_text: str, out_dir: Path, report_path: Path, force: bool, dry
     write_report(report_path, recipes, results, source_name)
 
     flagged = [r for r in recipes if r.review]
+    logger.info(
+        "migration complete: %d recipes (%d clean, %d flagged)",
+        len(recipes), len(recipes) - len(flagged), len(flagged),
+    )
     return {
         "input": source_name,
         "out": str(out_dir),
@@ -575,25 +617,48 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument("--dry-run", action="store_true", help="Write ONLY the report; generate no recipe files.")
     p.add_argument("--force", action="store_true", help="Overwrite existing recipe files (default: skip them).")
     p.add_argument("--json", action="store_true", help="Print a machine-readable JSON summary to stdout.")
+    p.add_argument(
+        "-v", "--verbose", action="store_true",
+        help="Raise log verbosity to DEBUG (logs go to stderr; default level is INFO).",
+    )
     return p.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
 
+    # All logging is routed to STDERR so that --json STDOUT carries ONLY the JSON
+    # summary line. force=True so a re-invocation (e.g. tests calling main twice)
+    # reconfigures the handler rather than silently keeping a stale one.
+    logging.basicConfig(
+        stream=sys.stderr,
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(levelname)s %(name)s: %(message)s",
+        force=True,
+    )
+
     if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", args.input):
         msg = f"--input must be a LOCAL file path, not a URL ({args.input!r})."
-        print(json.dumps({"error": msg}) if args.json else f"ERROR: {msg}", file=sys.stderr)
+        logger.error(msg)
+        if args.json:
+            # --json contract: exactly one machine-readable JSON object on STDOUT
+            # (here the error); the human-readable line goes to stderr above.
+            print(json.dumps({"error": msg}))
         return 2
 
     src_path = Path(args.input)
     if not src_path.is_file():
         msg = f"input file not found: {src_path}"
-        print(json.dumps({"error": msg}) if args.json else f"ERROR: {msg}", file=sys.stderr)
+        logger.error(msg)
+        if args.json:
+            print(json.dumps({"error": msg}))
         return 2
 
-    source_text = src_path.read_text(encoding="utf-8")
     try:
+        # read_text is INSIDE the guarded block so read failures (e.g. a
+        # non-UTF-8 file raising UnicodeDecodeError) are converted to the same
+        # one-line --json error contract rather than escaping as a raw traceback.
+        source_text = src_path.read_text(encoding="utf-8")
         summary = migrate(
             source_text=source_text,
             out_dir=Path(args.out),
@@ -603,10 +668,19 @@ def main(argv: list[str] | None = None) -> int:
             source_name=str(src_path),
         )
     except MigrationError as exc:
+        logger.error("MIGRATION HALTED — %s", exc)
+        if args.json:
+            # --json contract: exactly one JSON object on STDOUT (here the error);
+            # the human-readable HALTED line goes to stderr above.
+            print(json.dumps({"error": str(exc)}))
+        return 1
+    except Exception as exc:
+        # Any other failure (read errors, unexpected bugs) is still converted to
+        # the same contract: one JSON line on STDOUT in --json mode, a log line on
+        # stderr, and a non-zero exit. Never escape as a raw traceback on stdout.
+        logger.error("MIGRATION FAILED — %s", exc)
         if args.json:
             print(json.dumps({"error": str(exc)}))
-        else:
-            print(f"MIGRATION HALTED — {exc}", file=sys.stderr)
         return 1
 
     if args.json:
