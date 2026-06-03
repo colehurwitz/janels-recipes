@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import re
 import sys
 import time
@@ -581,6 +582,10 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
 
+    # Route logging to stderr so it never contaminates the --json stdout contract.
+    logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logger = logging.getLogger("migrate")
+
     if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", args.input):
         msg = f"--input must be a LOCAL file path, not a URL ({args.input!r})."
         print(json.dumps({"error": msg}) if args.json else f"ERROR: {msg}", file=sys.stderr)
@@ -607,6 +612,18 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"error": str(exc)}))
         else:
             print(f"MIGRATION HALTED — {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        # Catch-all for unexpected crashes: log a full traceback to STDERR while
+        # preserving the one-line --json {error} stdout contract. MigrationError
+        # is handled above (it subclasses Exception, so this clause MUST stay
+        # second). Do NOT re-raise — that would dump a raw traceback to stderr
+        # and bypass the --json contract.
+        logger.exception("unexpected error during migration")
+        if args.json:
+            print(json.dumps({"error": str(exc)}))
+        else:
+            print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
     if args.json:
