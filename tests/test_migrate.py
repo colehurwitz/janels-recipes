@@ -10,6 +10,7 @@ temporary output directories — nothing touches the real content/recipes/.
 
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -313,6 +314,44 @@ class CliTests(unittest.TestCase):
     def test_missing_file_refused(self):
         rc = migrate.main(["--input", "/no/such/file.md", "--json"])
         self.assertEqual(rc, 2)
+
+
+def test_unexpected_exception_returns_1_and_keeps_stdout_clean(tmp_path, monkeypatch, capsys):
+    """The catch-all `except Exception` in main() must convert an UNEXPECTED
+    (non-MigrationError) crash into: rc==1, exactly one JSON error line on
+    stdout, and the full traceback on stderr only (never on the --json stdout
+    contract that eval/score.py parses)."""
+    import logging
+
+    src = tmp_path / "input.md"
+    src.write_text("# Anything\n", encoding="utf-8")
+
+    def boom(*args, **kwargs):
+        raise ValueError("boom")
+
+    monkeypatch.setattr(migrate, "migrate", boom)
+
+    # main() calls logging.basicConfig(stream=sys.stderr) on first use only; a
+    # prior test may have bound the root handler to a stale stderr. Clear the
+    # handlers so basicConfig rebinds to the stderr capsys is currently capturing.
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
+    rc = migrate.main(["--input", str(src), "--out", str(tmp_path / "out"), "--json"])
+
+    out, err = capsys.readouterr()
+
+    # (a) unexpected crash maps to exit code 1 (not a raw traceback escaping main)
+    assert rc == 1
+    # (b) stdout is exactly ONE line and parses to a dict carrying 'error'
+    stdout_lines = out.splitlines()
+    assert len(stdout_lines) == 1
+    payload = json.loads(stdout_lines[0])
+    assert isinstance(payload, dict)
+    assert "error" in payload
+    # (c) the multi-line traceback is on stderr, never on the --json stdout
+    assert "Traceback" not in out
+    assert "Traceback" in err
 
 
 if __name__ == "__main__":
