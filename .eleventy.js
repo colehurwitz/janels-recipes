@@ -60,7 +60,8 @@ export default function (eleventyConfig) {
         name: siteTitle,
       };
 
-      return `<script type="application/ld+json">${JSON.stringify(obj, null, 2)}</script>`;
+      const json = JSON.stringify(obj, null, 2).replace(/</g, '\\u003c');
+      return `<script type="application/ld+json">${json}</script>`;
     }
   );
 
