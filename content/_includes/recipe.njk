@@ -4,6 +4,7 @@ layout: base.njk
 {# Recipe page. `data-pagefind-body` marks this article as the searchable unit;
    the chrome in base.njk is `data-pagefind-ignore`d. Optional fields (image,
    notes) render only when present — forgiving frontmatter, no hard-fail. #}
+{% recipeJsonLd title, category, notes, image, page.url, site.url, site.title, site.description %}
 <article class="recipe" data-pagefind-body>
   <div class="recipe-actions" data-pagefind-ignore>
     <a class="back-link" href="{{ ('/categories/' + (category | categorySlug) + '/') | url }}">← {{ category }}</a>

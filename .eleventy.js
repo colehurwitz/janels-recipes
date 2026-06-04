@@ -32,6 +32,38 @@ export default function (eleventyConfig) {
   // Recipe images. Editors drag-drop files in here via the web UI.
   eleventyConfig.addPassthroughCopy({ "content/images": "images" });
 
+  // --- Shortcodes -----------------------------------------------------------
+  eleventyConfig.addShortcode(
+    "recipeJsonLd",
+    function (title, category, notes, image, pageUrl, siteUrl, siteTitle, siteDescription) {
+      const obj = {
+        "@context": "https://schema.org",
+        "@type": "Recipe",
+        name: title,
+      };
+
+      if (category) {
+        obj.recipeCategory = category;
+      }
+
+      obj.description = notes || siteDescription;
+
+      if (image) {
+        obj.image = siteUrl + "/images/" + image;
+      }
+
+      obj.url = siteUrl + pageUrl;
+      obj.mainEntityOfPage = siteUrl + pageUrl;
+
+      obj.author = {
+        "@type": "Person",
+        name: siteTitle,
+      };
+
+      return `<script type="application/ld+json">${JSON.stringify(obj, null, 2)}</script>`;
+    }
+  );
+
   // --- Filters --------------------------------------------------------------
   eleventyConfig.addFilter("categorySlug", categorySlug);
 
