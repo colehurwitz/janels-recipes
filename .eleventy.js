@@ -85,7 +85,7 @@ export default function (eleventyConfig) {
       obj.description = notes ? notes : siteDescription;
 
       if (image) {
-        obj.image = siteUrl + "/janels-recipes/images/" + image;
+        obj.image = siteUrl + "/images/" + image;
       }
 
       obj.url = siteUrl + pageUrl;
