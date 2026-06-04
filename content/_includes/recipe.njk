@@ -34,6 +34,8 @@ layout: base.njk
   {% endif %}
 </article>
 
+{% recipeJsonLd title, category, notes, image, page.url, site.url, site.title, site.description %}
+
 {# Progressive enhancement: injects the ½×/1×/2×/3× scaling toolbar. Plain
    page renders fine without it. `| url` keeps the path link_integrity-valid. #}
 <script src="{{ '/assets/js/scale.js' | url }}" defer></script>

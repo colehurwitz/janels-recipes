@@ -69,6 +69,38 @@ export default function (eleventyConfig) {
       )
   );
 
+  eleventyConfig.addShortcode(
+    "recipeJsonLd",
+    function (title, category, notes, image, pageUrl, siteUrl, siteTitle, siteDescription) {
+      const obj = {
+        "@context": "https://schema.org",
+        "@type": "Recipe",
+        name: title,
+      };
+
+      if (category) {
+        obj.recipeCategory = category;
+      }
+
+      obj.description = notes ? notes : siteDescription;
+
+      if (image) {
+        obj.image = siteUrl + "/janels-recipes/images/" + image;
+      }
+
+      obj.url = siteUrl + pageUrl;
+      obj.mainEntityOfPage = siteUrl + pageUrl;
+
+      obj.author = {
+        "@type": "Person",
+        name: siteTitle,
+      };
+
+      const json = JSON.stringify(obj, null, 2).replace(/</g, "\\u003c");
+      return `<script type="application/ld+json">${json}</script>`;
+    }
+  );
+
   return {
     pathPrefix: "/janels-recipes/",
     markdownTemplateEngine: "njk",
