@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import re
 import sys
 import time
@@ -579,6 +580,9 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
+    logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logger = logging.getLogger("migrate")
+
     args = parse_args(argv)
 
     if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", args.input):
@@ -607,6 +611,13 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"error": str(exc)}))
         else:
             print(f"MIGRATION HALTED — {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        logger.exception("unexpected error during migration")
+        if args.json:
+            print(json.dumps({"error": str(exc)}))
+        else:
+            print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
     if args.json:
